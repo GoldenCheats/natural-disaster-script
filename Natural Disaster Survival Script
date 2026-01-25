@@ -1,13 +1,6 @@
 --[[
-    KILASIK'S MULTI-TARGET FLING [PREMIUM EDITION]
-    Mechanism: Original zqyDSUWX (Untouched)
-    FIXED: ESP Button text is now ALWAYS BLACK (regardless of state). [NEW]
-    ADDED: Fly Speed Slider (Syncs with Fly Logic). [NEW]
-    ADDED: Touch Fling (Toggleable) logic.
-    ADDED: Full Integrated Fly (Keybindable & Speed Control). [NEW]
-    ADDED: Godmode (Print "Hi") and Anti Fling buttons preserved.
-    RESTORED: All original functions and keybind logic.
-    LINE COUNT: 740+ (Integrity Verified)
+   Removed godmode options and implemented no fall damage for now
+added whitelist system
 ]]
 
 local Players = game:GetService("Players")
@@ -15,17 +8,19 @@ local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextChatService = game:GetService("TextChatService")
 local Player = Players.LocalPlayer
 
 -- Variables
 local SelectedTargets = {}
+local WhitelistedUsers = {} 
 local FlingActive = false
 local TouchFlingActive = false
-local FlingPower = 10000 -- Default power for calculation
+local FlingPower = 10000 
 getgenv().OldPos = nil
 getgenv().FPDH = workspace.FallenPartsDestroyHeight
 
--- FLY VARIABLES [INTEGRATED]
+-- FLY VARIABLES
 local Flying = false
 local FlySpeed = 50
 local FlyKeybind = Enum.KeyCode.F
@@ -64,8 +59,10 @@ OpenBtn.TextColor3 = Color3.fromRGB(255, 65, 65)
 OpenBtn.Font = Enum.Font.GothamBold
 OpenBtn.TextSize = 24
 OpenBtn.Parent = ScreenGui
+
 local OpenCorner = Instance.new("UICorner", OpenBtn)
 OpenCorner.CornerRadius = UDim.new(1, 0)
+
 local OpenStroke = Instance.new("UIStroke", OpenBtn)
 OpenStroke.Thickness = 2
 OpenStroke.Color = Color3.fromRGB(45, 45, 45)
@@ -87,7 +84,6 @@ MainStroke.Thickness = 2
 MainStroke.Color = Color3.fromRGB(45, 45, 45)
 MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
--- Background Gradient
 local UIGradient = Instance.new("UIGradient", MainFrame)
 UIGradient.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
@@ -95,7 +91,6 @@ UIGradient.Color = ColorSequence.new({
 })
 UIGradient.Rotation = 45
 
--- Header
 local Header = Instance.new("Frame")
 Header.Size = UDim2.new(1, 0, 0, 45)
 Header.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -133,7 +128,6 @@ CloseBtn.TextSize = 30
 CloseBtn.Font = Enum.Font.Gotham
 CloseBtn.Parent = Header
 
--- Content Area
 local StatusLabel = Instance.new("TextLabel")
 StatusLabel.Position = UDim2.new(0, 15, 0, 55)
 StatusLabel.Size = UDim2.new(1, -30, 0, 20)
@@ -145,7 +139,6 @@ StatusLabel.TextSize = 12
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
 StatusLabel.Parent = MainFrame
 
--- SEARCH BAR
 local SearchBox = Instance.new("TextBox")
 SearchBox.Size = UDim2.new(1, -20, 0, 30)
 SearchBox.Position = UDim2.new(0, 10, 0, 80)
@@ -171,7 +164,7 @@ PlayerSelection.Parent = MainFrame
 local ListLayout = Instance.new("UIListLayout", PlayerSelection)
 ListLayout.Padding = UDim.new(0, 6)
 
--- Button Builder
+-- Expanded Button Creator
 local function CreateButton(text, pos, size, color)
     local btn = Instance.new("TextButton")
     btn.Text = text
@@ -200,15 +193,24 @@ local StopBtn = CreateButton("STOP FLING", UDim2.new(0.5, 5, 0, 290), UDim2.new(
 local SelectAllBtn = CreateButton("SELECT ALL", UDim2.new(0, 10, 0, 335), UDim2.new(0.5, -15, 0, 35), Color3.fromRGB(45, 45, 45))
 local DeselectBtn = CreateButton("DESELECT ALL", UDim2.new(0.5, 5, 0, 335), UDim2.new(0.5, -15, 0, 35), Color3.fromRGB(45, 45, 45))
 
--- RETURN MODE LOGIC
 local ModeBtn = CreateButton("RETURN MODE: ORIGINAL", UDim2.new(0, 10, 0, 375), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
 local ManualBtn = CreateButton("SET MANUAL POSITION", UDim2.new(0, 10, 0, 415), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
 ManualBtn.Visible = false
 
 ModeBtn.MouseButton1Click:Connect(function()
-    if ReturnMode == "Original" then ReturnMode = "Manual" ModeBtn.Text = "RETURN MODE: MANUAL" ManualBtn.Visible = true
-    elseif ReturnMode == "Manual" then ReturnMode = "Target" ModeBtn.Text = "RETURN MODE: TARGET" ManualBtn.Visible = false
-    else ReturnMode = "Original" ModeBtn.Text = "RETURN MODE: ORIGINAL" ManualBtn.Visible = false end
+    if ReturnMode == "Original" then
+        ReturnMode = "Manual"
+        ModeBtn.Text = "RETURN MODE: MANUAL"
+        ManualBtn.Visible = true
+    elseif ReturnMode == "Manual" then
+        ReturnMode = "Target"
+        ModeBtn.Text = "RETURN MODE: TARGET"
+        ManualBtn.Visible = false
+    else
+        ReturnMode = "Original"
+        ModeBtn.Text = "RETURN MODE: ORIGINAL"
+        ManualBtn.Visible = false
+    end
 end)
 
 ManualBtn.MouseButton1Click:Connect(function()
@@ -229,11 +231,10 @@ end)
 local RainbowBtn = CreateButton("RAINBOW UI: OFF", UDim2.new(0, 10, 0, 495), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
 local NameModeBtn = CreateButton("NAMES: BOTH", UDim2.new(0, 10, 0, 535), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30)) 
 
--- [FIXED] ESP BUTTON LOGIC: Always Black Text
 local ChamsColorBtn = CreateButton("CHAMS COLOR: WHITE", UDim2.new(0, 10, 0, 575), UDim2.new(1, -20, 0, 35), Color3.fromRGB(255, 255, 255))
 ChamsColorBtn.TextColor3 = Color3.new(0,0,0)
 
--- FLY SPEED SLIDER [REPLACED FLING POWER]
+-- FLY SPEED SLIDER
 local SliderFrame = Instance.new("Frame")
 SliderFrame.Size = UDim2.new(1, -20, 0, 50)
 SliderFrame.Position = UDim2.new(0, 10, 0, 615)
@@ -280,12 +281,10 @@ UIS.InputChanged:Connect(function(input)
     if draggingSlider and input.UserInputType == Enum.UserInputType.MouseMovement then UpdateSlider(input) end
 end)
 
--- UTILITY BUTTONS
 local GodmodeBtn = CreateButton("No fall Damage", UDim2.new(0, 10, 0, 670), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
 local AntiFlingBtn = CreateButton("Infinite Yield (Do AntiFling)", UDim2.new(0, 10, 0, 710), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
 local TouchFlingBtn = CreateButton("TOUCH FLING: OFF", UDim2.new(0, 10, 0, 750), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
 
--- FLY TOGGLE & BIND BUTTONS [NEW]
 local FlyToggleBtn = CreateButton("FLY: OFF", UDim2.new(0, 10, 0, 790), UDim2.new(0.5, -15, 0, 35), Color3.fromRGB(30, 30, 30))
 local FlyBindBtn = CreateButton("FLY KEY: F", UDim2.new(0.5, 5, 0, 790), UDim2.new(0.5, -15, 0, 35), Color3.fromRGB(30, 30, 30))
 
@@ -295,185 +294,65 @@ FlyBindBtn.MouseButton1Click:Connect(function()
 end)
 
 GodmodeBtn.MouseButton1Click:Connect(function() 
+local Lp = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
--- Instances:
-local ScreenGui = Instance.new("ScreenGui")
-local MainFrame = Instance.new("Frame")
-local TopBar = Instance.new("Frame")
-local UIGradient = Instance.new("UIGradient")
-local Title = Instance.new("TextLabel")
-local MinimizeBtn = Instance.new("TextButton")
-local CloseBtn = Instance.new("TextButton")
-local ContentFrame = Instance.new("Frame")
-local UIListLayout = Instance.new("UIListLayout")
+local function ModernSurvival(Char)
+    local Hum = Char:WaitForChild("Humanoid")
+    local Root = Char:WaitForChild("HumanoidRootPart")
 
--- Setup UI Properties
-ScreenGui.Name = "GeminiCustomUI"
-ScreenGui.Parent = game.CoreGui 
-ScreenGui.ResetOnSpawn = false
-
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.4, 0, 0.4, 0)
-MainFrame.Size = UDim2.new(0, 230, 0, 200)
-MainFrame.Active = true
-MainFrame.Draggable = true
-
-TopBar.Name = "TopBar"
-TopBar.Parent = MainFrame
-TopBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-TopBar.BorderSizePixel = 0
-TopBar.Size = UDim2.new(1, 0, 0, 35)
-
-UIGradient.Color = ColorSequence.new{
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-    ColorSequenceKeypoint.new(0.2, Color3.fromRGB(255, 255, 0)),
-    ColorSequenceKeypoint.new(0.4, Color3.fromRGB(0, 255, 0)),
-    ColorSequenceKeypoint.new(0.6, Color3.fromRGB(0, 255, 255)),
-    ColorSequenceKeypoint.new(0.8, Color3.fromRGB(0, 0, 255)),
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 255))
-}
-UIGradient.Parent = TopBar
-
--- Rainbow Animation Logic
-task.spawn(function()
-    local rot = 0
-    while task.wait(0.02) do
-        UIGradient.Rotation = rot
-        rot = rot + 2
-        if rot >= 360 then rot = 0 end
-    end
-end)
-
-Title.Parent = TopBar
-Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0.05, 0, 0, 0)
-Title.Size = UDim2.new(0.6, 0, 1, 0)
-Title.Font = Enum.Font.GothamBold
-Title.Text = "Hospital HUB"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 14
-Title.TextXAlignment = Enum.TextXAlignment.Left
-
-CloseBtn.Name = "CloseBtn"
-CloseBtn.Parent = TopBar
-CloseBtn.Position = UDim2.new(0.85, 0, 0, 0)
-CloseBtn.Size = UDim2.new(0.15, 0, 1, 0)
-CloseBtn.Text = "X"
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.BackgroundTransparency = 1
-
-MinimizeBtn.Name = "MinBtn"
-MinimizeBtn.Parent = TopBar
-MinimizeBtn.Position = UDim2.new(0.7, 0, 0, 0)
-MinimizeBtn.Size = UDim2.new(0.15, 0, 1, 0)
-MinimizeBtn.Text = "-"
-MinimizeBtn.Font = Enum.Font.GothamBold
-MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeBtn.BackgroundTransparency = 1
-
-ContentFrame.Parent = MainFrame
-ContentFrame.Position = UDim2.new(0, 0, 0, 40)
-ContentFrame.Size = UDim2.new(1, 0, 1, -40)
-ContentFrame.BackgroundTransparency = 1
-
-UIListLayout.Parent = ContentFrame
-UIListLayout.Padding = UDim.new(0, 8)
-UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
--- Button Builder
-local function CreateButton(name, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9, 0, 0, 35)
-    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Text = name
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 12
-    btn.BorderSizePixel = 0
-    btn.Parent = ContentFrame
+    -- 1. KEEP NORMAL HEALTH (To stay on the "Winner List")
+    -- Setting health too high makes the Server think you are a NPC/Bot.
+    Hum.MaxHealth = 100
+    Hum.Health = 100
     
-    local active = false
-    btn.MouseButton1Click:Connect(function()
-        active = not active
-        btn.BackgroundColor3 = active and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(35, 35, 35)
-        callback(active)
-    end)
-    
-    -- Rounded Corners
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = btn
-end
-
---- BUTTON ACTIONS ---
-
--- 1. Good No Fall Damage
-CreateButton("good no fall damage", function(state)
-    local char = game.Players.LocalPlayer.Character
-    if char and state then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        hum.MaxHealth = 999999
-        hum.Health = 999999
-        -- Disables the falling state which usually triggers fall damage
-        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-    end
-end)
-
--- 2. Buggy No Fall Damage (Pastebin Logic)
-CreateButton("Buggy no fall damage *dont recommend*", function(state)
-    local Lp = game.Players.LocalPlayer
-    local char = Lp.Character
-    if char and state then
-        char:BreakJoints() -- Forces a reset to try and break connections
-        task.wait(0.1)
-        local hum = char:FindFirstChild("Humanoid")
-        if hum then hum:Destroy() end
-        Instance.new("Humanoid", char)
-    end
-end)
-
--- 3. Killbrick Toggle
-local kbActive = false
-CreateButton("Disable Kill Parts", function(state)
-    kbActive = state
-    task.spawn(function()
-        while kbActive do
-            pcall(function()
-                local hrp = game.Players.LocalPlayer.Character.HumanoidRootPart
-                for _, v in pairs(workspace:GetPartBoundsInRadius(hrp.Position, 12)) do
-                    if v:IsA("BasePart") and not v:IsDescendantOf(game.Players.LocalPlayer.Character) then
-                        v.CanTouch = false
-                    end
-                end
-            end)
-            task.wait(0.2)
+    -- 2. THE "ANTI-DAMAGE" LOOP
+    -- This resets your downward speed to 0 every single frame.
+    -- If the server thinks you aren't falling, it never deals fall damage.
+    local hb
+    hb = RunService.Heartbeat:Connect(function()
+        if not Char:IsDescendantOf(workspace) or Hum.Health <= 0 then 
+            hb:Disconnect() 
+            return 
+        end
+        
+        -- Reset Falling Velocity (Stops Fall Damage)
+        if Root.Velocity.Y < -20 then
+            Root.Velocity = Vector3.new(Root.Velocity.X, 0, Root.Velocity.Z)
+        end
+        
+        -- Auto-Heal (Stops minor fire/acid damage)
+        if Hum.Health < 100 and Hum.Health > 0 then
+            Hum.Health = 100
         end
     end)
-end)
 
---- UI CONTROLS ---
+    -- 3. DISABLE PHYSICS TRIPPING
+    -- This stops you from falling over or ragdolling.
+    Hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+    Hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+    
+    -- 4. BYPASS "0 HEALTH" GLITCH
+    -- If the game tries to force you to 0, this forces you back to 1.
+    Hum.HealthChanged:Connect(function(hp)
+        if hp <= 0 then
+            Hum.Health = 1
+        end
+    end)
+end
 
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+-- 5. THE TELEPORT FIX (No Ghosting)
+-- We REMOVED the "Optimize" function because it was breaking teleports.
+-- Instead, we just make your character harder to hit.
 
-local isMin = false
-MinimizeBtn.MouseButton1Click:Connect(function()
-    isMin = not isMin
-    ContentFrame.Visible = not isMin
-    MainFrame.Size = isMin and UDim2.new(0, 230, 0, 35) or UDim2.new(0, 230, 0, 200)
-end)
+-- Initial Setup
+if Lp.Character then ModernSurvival(Lp.Character) end
+Lp.CharacterAdded:Connect(ModernSurvival)
 
-end)
+ end)
+AntiFlingBtn.MouseButton1Click:Connect(function() loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))() end)
 
-AntiFlingBtn.MouseButton1Click:Connect(function()
-   loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()
-end)
-
--- FLY LOGIC (INFINITE YIELD VERSION)
+-- FLY LOGIC
 local function ToggleFly()
     Flying = not Flying
     FlyToggleBtn.Text = Flying and "FLY: ON" or "FLY: OFF"
@@ -521,7 +400,7 @@ end
 
 FlyToggleBtn.MouseButton1Click:Connect(ToggleFly)
 
--- TOUCH FLING LOGIC
+-- TOUCH FLING
 local function TouchFlingLoop()
     local movel = 0.1
     while TouchFlingActive do
@@ -547,16 +426,8 @@ TouchFlingBtn.MouseButton1Click:Connect(function()
     if TouchFlingActive then task.spawn(TouchFlingLoop) end
 end)
 
--- THEMES & COLOURS
-local Themes = {
-    Red = Color3.fromRGB(255, 65, 65),
-    Blue = Color3.fromRGB(65, 150, 255),
-    Purple = Color3.fromRGB(180, 65, 255),
-    Neon = Color3.fromRGB(0, 255, 150),
-    White = Color3.fromRGB(255, 255, 255),
-    Green = Color3.fromRGB(0, 255, 0),
-    Yellow = Color3.fromRGB(255, 255, 0)
-}
+-- THEME SYSTEM
+local Themes = { Red = Color3.fromRGB(255, 65, 65), Blue = Color3.fromRGB(65, 150, 255), Purple = Color3.fromRGB(180, 65, 255), Neon = Color3.fromRGB(0, 255, 150), White = Color3.fromRGB(255, 255, 255), Green = Color3.fromRGB(0, 255, 0), Yellow = Color3.fromRGB(255, 255, 0) }
 
 local function UpdateEntireUI(color)
     Title.TextColor3 = color
@@ -607,8 +478,8 @@ RainbowBtn.MouseButton1Click:Connect(function()
     if not RainbowMode then SetTheme(CurrentTheme) end
 end)
 
--- NAME DISPLAY & SEARCH
-local function RefreshList() end 
+-- PLAYER LIST LOGIC
+local RefreshList = nil
 
 NameModeBtn.MouseButton1Click:Connect(function()
     if NameDisplayMode == "Both" then NameDisplayMode = "Display" NameModeBtn.Text = "NAMES: DISPLAY ONLY"
@@ -617,12 +488,9 @@ NameModeBtn.MouseButton1Click:Connect(function()
     RefreshList()
 end)
 
-SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
-    SearchText = SearchBox.Text:lower()
-    RefreshList()
-end)
+SearchBox:GetPropertyChangedSignal("Text"):Connect(function() SearchText = SearchBox.Text:lower() RefreshList() end)
 
--- ESP SYSTEM
+-- CHAMS / ESP (FULLY EXPANDED ORIGINAL)
 local function CreateESP(p)
     if p == Player then return end
     local function Setup(char)
@@ -658,71 +526,20 @@ local function CreateESP(p)
         
         RunService.Heartbeat:Connect(function()
             if not p or not p.Parent then return end
-            if NameDisplayMode == "Both" then Label.Text = p.DisplayName .. " (@" .. p.Name .. ")"
-            elseif NameDisplayMode == "Display" then Label.Text = p.DisplayName
-            else Label.Text = "@" .. p.Name end
+            if NameDisplayMode == "Both" then 
+                Label.Text = p.DisplayName .. " (@" .. p.Name .. ")"
+            elseif NameDisplayMode == "Display" then 
+                Label.Text = p.DisplayName
+            else 
+                Label.Text = "@" .. p.Name 
+            end
         end)
     end
     if p.Character then Setup(p.Character) end
     p.CharacterAdded:Connect(Setup)
 end
 
--- UI List Builder
-RefreshList = function()
-    for _, v in pairs(PlayerSelection:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
-    for _, p in pairs(Players:GetPlayers()) do
-        local displayName = p.DisplayName:lower()
-        local userName = p.Name:lower()
-        if p ~= Player and (displayName:find(SearchText) or userName:find(SearchText)) then
-            local Card = Instance.new("Frame")
-            Card.Size = UDim2.new(1, -8, 0, 50)
-            Card.BackgroundColor3 = SelectedTargets[p.Name] and Color3.fromRGB(40, 25, 25) or Color3.fromRGB(28, 28, 28)
-            Card.BorderSizePixel = 0
-            Card.Parent = PlayerSelection
-            local CardCorner = Instance.new("UICorner", Card)
-            CardCorner.CornerRadius = UDim.new(0, 6)
-            local CardStroke = Instance.new("UIStroke", Card)
-            CardStroke.Thickness = 1
-            CardStroke.Color = SelectedTargets[p.Name] and Color3.fromRGB(150, 0, 0) or Color3.fromRGB(40, 40, 40)
-            
-            local Thumb = Instance.new("ImageLabel")
-            Thumb.Size = UDim2.new(0, 40, 0, 40)
-            Thumb.Position = UDim2.new(0, 5, 0.5, -20)
-            Thumb.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-            pcall(function() Thumb.Image = Players:GetUserThumbnailAsync(p.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48) end)
-            Thumb.Parent = Card
-            Instance.new("UICorner", Thumb).CornerRadius = UDim.new(1, 0)
-            
-            local NameLabel = Instance.new("TextLabel")
-            NameLabel.Size = UDim2.new(1, -55, 1, 0)
-            NameLabel.Position = UDim2.new(0, 52, 0, 0)
-            NameLabel.BackgroundTransparency = 1
-            NameLabel.RichText = true
-            NameLabel.TextColor3 = Color3.new(1,1,1)
-            NameLabel.Font = Enum.Font.Gotham
-            NameLabel.TextSize = 13
-            NameLabel.TextXAlignment = Enum.TextXAlignment.Left
-            NameLabel.Parent = Card
-            
-            if NameDisplayMode == "Both" then NameLabel.Text = p.DisplayName .. "\n<font color='#AAAAAA'>@" .. p.Name .. "</font>"
-            elseif NameDisplayMode == "Display" then NameLabel.Text = p.DisplayName
-            else NameLabel.Text = "@" .. p.Name end
-            
-            local ClickArea = Instance.new("TextButton")
-            ClickArea.Size = UDim2.new(1, 0, 1, 0)
-            ClickArea.BackgroundTransparency = 1
-            ClickArea.Text = ""
-            ClickArea.Parent = Card
-            ClickArea.MouseButton1Click:Connect(function()
-                if SelectedTargets[p.Name] then SelectedTargets[p.Name] = nil else SelectedTargets[p.Name] = p end
-                task.spawn(RefreshList)
-            end)
-        end
-    end
-    PlayerSelection.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y)
-end
-
--- FLING LOGIC (ORIGINAL UNTOUCHED)
+-- CORE FLING ENGINE (UNTOUCHED ORIGINAL)
 local function SkidFling(TargetPlayer)
     local Character = Player.Character
     local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
@@ -807,37 +624,7 @@ local function SkidFling(TargetPlayer)
     end
 end
 
--- ESP Sync & Hover Logic
-RunService.RenderStepped:Connect(function()
-    local mouseLoc = UIS:GetMouseLocation()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= Player and p.Character then
-            local highlight = p.Character:FindFirstChild("KilasikESP")
-            if highlight then
-                local root = p.Character:FindFirstChild("HumanoidRootPart")
-                if root then
-                    local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(root.Position)
-                    local isHovered = onScreen and (Vector2.new(pos.X, pos.Y) - mouseLoc).Magnitude < 50
-                    if SelectedTargets[p.Name] then
-                        highlight.OutlineColor = Color3.fromRGB(150, 0, 0) 
-                        highlight.FillColor = Color3.fromRGB(150, 0, 0)
-                        highlight.OutlineTransparency = 0 
-                    elseif isHovered then
-                        highlight.OutlineColor = Color3.fromRGB(100, 0, 0) 
-                        highlight.FillColor = Color3.fromRGB(100, 0, 0)
-                        highlight.OutlineTransparency = 0
-                    else
-                        highlight.OutlineColor = ESP_Color 
-                        highlight.FillColor = ESP_Color
-                        highlight.OutlineTransparency = 0
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- Controls
+-- FLING FLOW CONTROL
 local function Start()
     if FlingActive then return end
     local count = 0; for _ in pairs(SelectedTargets) do count = count + 1 end
@@ -855,40 +642,225 @@ local function Start()
     end)
 end
 
-local function Stop() FlingActive = false StatusLabel.Text = "Fling system disengaged" end
+local function Stop() 
+    FlingActive = false 
+    StatusLabel.Text = "Fling system disengaged" 
+end
 
--- Input Handlers
+-- CHAT HANDLER
+local function SendChatMessage(msg)
+    if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+        local channel = TextChatService.TextChannels.RBXGeneral
+        channel:SendAsync(msg)
+    else
+        ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer(msg, "All")
+    end
+end
+
+-- [TUTORIAL PROMPT]
+local function PromptTutorial(targetPlayer)
+    local PromptFrame = Instance.new("Frame")
+    PromptFrame.Size = UDim2.new(0, 300, 0, 150)
+    PromptFrame.Position = UDim2.new(0.5, -150, 0.4, -75)
+    PromptFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    PromptFrame.BorderSizePixel = 0
+    PromptFrame.Parent = ScreenGui
+    Instance.new("UICorner", PromptFrame).CornerRadius = UDim.new(0, 10)
+    Instance.new("UIStroke", PromptFrame).Color = Color3.fromRGB(255, 65, 65)
+
+    local Txt = Instance.new("TextLabel")
+    Txt.Size = UDim2.new(1, -20, 0, 60)
+    Txt.Position = UDim2.new(0, 10, 0, 10)
+    Txt.BackgroundTransparency = 1
+    Txt.Text = targetPlayer.Name .. " has been given power to control your fling.\nSend tutorial to them?"
+    Txt.TextColor3 = Color3.new(1,1,1)
+    Txt.Font = Enum.Font.GothamBold
+    Txt.TextSize = 14
+    Txt.TextWrapped = true
+    Txt.Parent = PromptFrame
+
+    local Yes = CreateButton("YES", UDim2.new(0, 10, 0, 85), UDim2.new(0.5, -15, 0, 40), Color3.fromRGB(40, 130, 80))
+    local No = CreateButton("NO", UDim2.new(0.5, 5, 0, 85), UDim2.new(0.5, -15, 0, 40), Color3.fromRGB(160, 40, 40))
+    Yes.Parent = PromptFrame
+    No.Parent = PromptFrame
+
+    Yes.MouseButton1Click:Connect(function()
+        SendChatMessage("@" .. targetPlayer.Name .. " You have been given fling command. You can do .fling user (must be the first 3 letters of the username or more) to fling the user.")
+        PromptFrame:Destroy()
+    end)
+    No.MouseButton1Click:Connect(function() PromptFrame:Destroy() end)
+end
+
+-- [CHAT COMMAND LOGIC]
+local function HandleCommand(msg, speaker)
+    if not WhitelistedUsers[speaker.Name] then return end
+    local args = msg:split(" ")
+    local cmd = args[1]:lower()
+    
+    if cmd == ".fling" and args[2] then
+        local targetName = args[2]:lower()
+        if targetName == "all" then
+            Stop() task.wait(0.1)
+            for _, p in pairs(Players:GetPlayers()) do if p ~= Player then SelectedTargets[p.Name] = p end end
+            Start() task.wait(2.5) Stop() SelectedTargets = {} RefreshList()
+        else
+            local found = nil
+            for _, p in pairs(Players:GetPlayers()) do
+                if p.Name:lower():sub(1, #targetName) == targetName or p.DisplayName:lower():sub(1, #targetName) == targetName then
+                    found = p break
+                end
+            end
+            if found and found ~= Player then
+                Stop() task.wait(0.1) SelectedTargets = {[found.Name] = found} Start() task.wait(2.5) Stop() SelectedTargets = {} RefreshList()
+            end
+        end
+    elseif cmd == ".loopfling" and args[2] then
+        local targetName = args[2]:lower()
+        if targetName == "all" then
+            Stop() task.wait(0.1)
+            for _, p in pairs(Players:GetPlayers()) do if p ~= Player then SelectedTargets[p.Name] = p end end
+            Start()
+        else
+            local found = nil
+            for _, p in pairs(Players:GetPlayers()) do
+                if p.Name:lower():sub(1, #targetName) == targetName or p.DisplayName:lower():sub(1, #targetName) == targetName then
+                    found = p break
+                end
+            end
+            if found and found ~= Player then
+                Stop() task.wait(0.1) SelectedTargets = {[found.Name] = found} Start()
+            end
+        end
+    elseif cmd == ".unfling" and args[2] then
+        if args[2]:lower() == "all" then Stop() SelectedTargets = {} RefreshList() end
+    end
+end
+
+-- PLAYER CARD LIST BUILDER
+RefreshList = function()
+    for _, v in pairs(PlayerSelection:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
+    for _, p in pairs(Players:GetPlayers()) do
+        local displayName = p.DisplayName:lower()
+        local userName = p.Name:lower()
+        if p ~= Player and (displayName:find(SearchText) or userName:find(SearchText)) then
+            local Card = Instance.new("Frame")
+            Card.Size = UDim2.new(1, -8, 0, 50)
+            Card.BackgroundColor3 = SelectedTargets[p.Name] and Color3.fromRGB(40, 25, 25) or Color3.fromRGB(28, 28, 28)
+            Card.BorderSizePixel = 0
+            Card.Parent = PlayerSelection
+            
+            local CardCorner = Instance.new("UICorner", Card)
+            CardCorner.CornerRadius = UDim.new(0, 6)
+            
+            local CardStroke = Instance.new("UIStroke", Card)
+            CardStroke.Thickness = 1
+            if SelectedTargets[p.Name] then
+                CardStroke.Color = Color3.fromRGB(150, 0, 0)
+            elseif WhitelistedUsers[p.Name] then
+                CardStroke.Color = Color3.fromRGB(0, 255, 120)
+            else
+                CardStroke.Color = Color3.fromRGB(40, 40, 40)
+            end
+            
+            local Thumb = Instance.new("ImageLabel")
+            Thumb.Size = UDim2.new(0, 40, 0, 40)
+            Thumb.Position = UDim2.new(0, 5, 0.5, -20)
+            Thumb.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+            pcall(function() Thumb.Image = Players:GetUserThumbnailAsync(p.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48) end)
+            Thumb.Parent = Card
+            Instance.new("UICorner", Thumb).CornerRadius = UDim.new(1, 0)
+            
+            local NameLabel = Instance.new("TextLabel")
+            NameLabel.Size = UDim2.new(1, -95, 1, 0)
+            NameLabel.Position = UDim2.new(0, 52, 0, 0)
+            NameLabel.BackgroundTransparency = 1
+            NameLabel.RichText = true
+            NameLabel.TextColor3 = Color3.new(1,1,1)
+            NameLabel.Font = Enum.Font.Gotham
+            NameLabel.TextSize = 13
+            NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+            NameLabel.Parent = Card
+            
+            if NameDisplayMode == "Both" then 
+                NameLabel.Text = p.DisplayName .. "\n<font color='#AAAAAA'>@" .. p.Name .. "</font>"
+            elseif NameDisplayMode == "Display" then 
+                NameLabel.Text = p.DisplayName
+            else 
+                NameLabel.Text = "@" .. p.Name 
+            end
+            
+            local WBtn = Instance.new("TextButton")
+            WBtn.Size = UDim2.new(0, 40, 0, 30)
+            WBtn.Position = UDim2.new(1, -45, 0.5, -15)
+            WBtn.BackgroundColor3 = WhitelistedUsers[p.Name] and Color3.fromRGB(0, 150, 70) or Color3.fromRGB(40, 40, 40)
+            WBtn.Text = "W"
+            WBtn.TextColor3 = Color3.new(1,1,1)
+            WBtn.Font = Enum.Font.GothamBold
+            WBtn.Parent = Card
+            Instance.new("UICorner", WBtn).CornerRadius = UDim.new(0, 6)
+
+            WBtn.MouseButton1Click:Connect(function()
+                if WhitelistedUsers[p.Name] then 
+                    WhitelistedUsers[p.Name] = nil 
+                else 
+                    WhitelistedUsers[p.Name] = true 
+                    PromptTutorial(p)
+                end
+                RefreshList()
+            end)
+
+            local CardClick = Instance.new("TextButton")
+            CardClick.Size = UDim2.new(1, -50, 1, 0)
+            CardClick.BackgroundTransparency = 1
+            CardClick.Text = ""
+            CardClick.Parent = Card
+            
+            CardClick.MouseButton1Click:Connect(function()
+                if SelectedTargets[p.Name] then SelectedTargets[p.Name] = nil else SelectedTargets[p.Name] = p end
+                RefreshList()
+            end)
+        end
+    end
+    PlayerSelection.CanvasSize = UDim2.new(0, 0, 0, ListLayout.AbsoluteContentSize.Y)
+end
+
+-- ESP HOVER & SYNC
+RunService.RenderStepped:Connect(function()
+    local mouseLoc = UIS:GetMouseLocation()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= Player and p.Character then
+            local highlight = p.Character:FindFirstChild("KilasikESP")
+            if highlight then
+                local root = p.Character:FindFirstChild("HumanoidRootPart")
+                if root then
+                    local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(root.Position)
+                    local isHovered = onScreen and (Vector2.new(pos.X, pos.Y) - mouseLoc).Magnitude < 50
+                    if SelectedTargets[p.Name] then
+                        highlight.OutlineColor = Color3.fromRGB(150, 0, 0) highlight.FillColor = Color3.fromRGB(150, 0, 0)
+                    elseif isHovered then
+                        highlight.OutlineColor = Color3.fromRGB(100, 0, 0) highlight.FillColor = Color3.fromRGB(100, 0, 0)
+                    else
+                        highlight.OutlineColor = ESP_Color highlight.FillColor = ESP_Color
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- INPUT SYSTEM
 UIS.InputBegan:Connect(function(input, gp)
-    if SettingKey then
-        if input.UserInputType == Enum.UserInputType.Keyboard then
-            FlingKeybind = input.KeyCode
-            BindBtn.Text = "KEY: " .. input.KeyCode.Name
-            SettingKey = false
-        end
-        return
-    end
-    if FlySettingKey then
-        if input.UserInputType == Enum.UserInputType.Keyboard then
-            FlyKeybind = input.KeyCode
-            FlyBindBtn.Text = "FLY KEY: " .. input.KeyCode.Name
-            FlySettingKey = false
-        end
-        return
-    end
+    if SettingKey then if input.UserInputType == Enum.UserInputType.Keyboard then FlingKeybind = input.KeyCode BindBtn.Text = "KEY: " .. input.KeyCode.Name SettingKey = false end return end
+    if FlySettingKey then if input.UserInputType == Enum.UserInputType.Keyboard then FlyKeybind = input.KeyCode FlyBindBtn.Text = "FLY KEY: " .. input.KeyCode.Name FlySettingKey = false end return end
     if gp then return end
     if input.KeyCode == FlingKeybind then
-        if FlingActive then Stop() SelectedTargets = {} RefreshList()
-        else
+        if FlingActive then Stop() SelectedTargets = {} RefreshList() else
             local mouse = UIS:GetMouseLocation()
-            local closest = nil
-            local dist = 250
+            local closest = nil local dist = 250
             for _, p in pairs(Players:GetPlayers()) do
                 if p ~= Player and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                     local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
-                    if onScreen then
-                        local mag = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude
-                        if mag < dist then dist = mag closest = p end
-                    end
+                    if onScreen then local mag = (Vector2.new(pos.X, pos.Y) - mouse).Magnitude if mag < dist then dist = mag closest = p end end
                 end
             end
             if closest then SelectedTargets = {[closest.Name] = closest} Start() RefreshList() end
@@ -898,6 +870,7 @@ UIS.InputBegan:Connect(function(input, gp)
     if input.KeyCode == UI_ToggleKey then MainFrame.Visible = not MainFrame.Visible end
 end)
 
+-- BUTTON CONNECTORS
 StartBtn.MouseButton1Click:Connect(Start)
 StopBtn.MouseButton1Click:Connect(Stop)
 CloseBtn.MouseButton1Click:Connect(function() Stop() Flying = false ScreenGui:Destroy() end)
@@ -905,7 +878,9 @@ OpenBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.V
 SelectAllBtn.MouseButton1Click:Connect(function() for _, p in pairs(Players:GetPlayers()) do if p ~= Player then SelectedTargets[p.Name] = p end end RefreshList() end)
 DeselectBtn.MouseButton1Click:Connect(function() SelectedTargets = {} Stop() RefreshList() end)
 
-for _, p in pairs(Players:GetPlayers()) do CreateESP(p) end
-Players.PlayerAdded:Connect(function(p) CreateESP(p) RefreshList() end)
+-- INIT
+for _, p in pairs(Players:GetPlayers()) do CreateESP(p) p.Chatted:Connect(function(msg) HandleCommand(msg, p) end) end
+Players.PlayerAdded:Connect(function(p) CreateESP(p) p.Chatted:Connect(function(msg) HandleCommand(msg, p) end) RefreshList() end)
+
 RefreshList()
 SetTheme("Red")
