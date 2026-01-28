@@ -1,0 +1,278 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local lp = Players.LocalPlayer
+
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local TopBar = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local CloseBtn = Instance.new("TextButton")
+local MinimizeBtn = Instance.new("TextButton")
+
+local HomeScreen = Instance.new("Frame")
+local ScriptScreen = Instance.new("ScrollingFrame") -- Using ScrollingFrame for better fit
+
+-- State Variables
+local FakePosEnabled = false
+local FallBreakerEnabled = false
+local HealthMultEnabled = false
+local God2018Enabled = false
+
+-- Root Setup
+ScreenGui.Name = "Gemini_V6_Fixed"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- Window Design
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+MainFrame.Position = UDim2.new(0.35, 0, 0.2, 0)
+MainFrame.Size = UDim2.new(0, 380, 0, 520) 
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local MainCorner = Instance.new("UICorner", MainFrame)
+MainCorner.CornerRadius = UDim.new(0, 16)
+
+local MainStroke = Instance.new("UIStroke", MainFrame)
+MainStroke.Color = Color3.fromRGB(45, 45, 45)
+MainStroke.Thickness = 2.5
+
+-- Top Bar Design
+TopBar.Name = "TopBar"
+TopBar.Parent = MainFrame
+TopBar.BackgroundTransparency = 1
+TopBar.Size = UDim2.new(1, 0, 0, 60)
+
+Title.Parent = TopBar
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0.06, 0, 0, 0)
+Title.Size = UDim2.new(0.6, 0, 1, 0)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "Dark Hospital V6"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 20
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Circular Controls (Red/Grey)
+CloseBtn.Parent = TopBar
+CloseBtn.Position = UDim2.new(0.88, 0, 0.3, 0)
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+CloseBtn.Text = ""
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(1, 0)
+
+MinimizeBtn.Parent = TopBar
+MinimizeBtn.Position = UDim2.new(0.78, 0, 0.3, 0)
+MinimizeBtn.Size = UDim2.new(0, 24, 0, 24)
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+MinimizeBtn.Text = ""
+Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(1, 0)
+
+-------------------------------------------------------------------
+-- HOME SCREEN (Caution & Tips)
+-------------------------------------------------------------------
+HomeScreen.Name = "HomeScreen"
+HomeScreen.Parent = MainFrame
+HomeScreen.BackgroundTransparency = 1
+HomeScreen.Size = UDim2.new(1, 0, 1, -60)
+HomeScreen.Position = UDim2.new(0, 0, 0, 60)
+
+local HomeLayout = Instance.new("UIListLayout", HomeScreen)
+HomeLayout.Padding = UDim.new(0, 12)
+HomeLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+HomeLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function CreateInfoBox(title, text, color, order)
+    local Box = Instance.new("Frame", HomeScreen)
+    Box.LayoutOrder = order
+    Box.Size = UDim2.new(0.92, 0, 0, 150)
+    Box.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+    Box.BackgroundTransparency = 0.5
+    Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 10)
+    local s = Instance.new("UIStroke", Box)
+    s.Color = color
+    s.Thickness = 1
+    
+    local T = Instance.new("TextLabel", Box)
+    T.Text = "⚠️ " .. title
+    T.Font = Enum.Font.GothamBold
+    T.TextColor3 = color
+    T.TextSize = 14
+    T.Size = UDim2.new(1, 0, 0, 35)
+    T.BackgroundTransparency = 1
+    
+    local C = Instance.new("TextLabel", Box)
+    C.Text = text
+    C.Font = Enum.Font.GothamMedium
+    C.TextColor3 = Color3.fromRGB(200, 200, 200)
+    C.TextSize = 12
+    C.Position = UDim2.new(0, 15, 0, 35)
+    C.Size = UDim2.new(1, -30, 1, -45)
+    C.BackgroundTransparency = 1
+    C.TextWrapped = true
+    C.TextYAlignment = Enum.TextYAlignment.Top
+end
+
+CreateInfoBox("CAUTION", "None of these will protect you against other types of damage in natural disaster survival.\nWalk fling may not work on these.", Color3.fromRGB(255, 80, 80), 1)
+CreateInfoBox("TIPS", "All these falldamge disablers can use the normal Fling functionality.\n\nIf you use fake postion dont jump from high buildings or fly off to the ground.\n\nIf you use health multipler and die enable it again.\n\nEnable anti fling in infinite yield for the best experience.", Color3.fromRGB(80, 180, 255), 2)
+
+local ProceedBtn = Instance.new("TextButton", HomeScreen)
+ProceedBtn.LayoutOrder = 3
+ProceedBtn.Size = UDim2.new(0.9, 0, 0, 45)
+ProceedBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+ProceedBtn.Text = "I UNDERSTAND"
+ProceedBtn.Font = Enum.Font.GothamBold
+ProceedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ProceedBtn.TextSize = 14
+Instance.new("UICorner", ProceedBtn).CornerRadius = UDim.new(0, 10)
+
+-------------------------------------------------------------------
+-- SCRIPT SCREEN
+-------------------------------------------------------------------
+ScriptScreen.Name = "ScriptScreen"
+ScriptScreen.Parent = MainFrame
+ScriptScreen.BackgroundTransparency = 1
+ScriptScreen.Size = UDim2.new(1, 0, 1, -70)
+ScriptScreen.Position = UDim2.new(0, 0, 0, 65)
+ScriptScreen.Visible = false
+ScriptScreen.ScrollBarThickness = 0
+ScriptScreen.CanvasSize = UDim2.new(0,0,1.2,0)
+
+local ScriptLayout = Instance.new("UIListLayout", ScriptScreen)
+ScriptLayout.Padding = UDim.new(0, 12)
+ScriptLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local function AddButtonWithTip(name, subtext, callback)
+    local Btn = Instance.new("TextButton", ScriptScreen)
+    Btn.Size = UDim2.new(0.94, 0, 0, 80)
+    Btn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+    Btn.Text = ""
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 12)
+    local s = Instance.new("UIStroke", Btn)
+    s.Color = Color3.fromRGB(45, 45, 45)
+    s.Thickness = 2
+    
+    local MainText = Instance.new("TextLabel", Btn)
+    MainText.Text = name
+    MainText.Font = Enum.Font.GothamBold
+    MainText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MainText.TextSize = 15
+    MainText.Position = UDim2.new(0, 15, 0, 15)
+    MainText.Size = UDim2.new(1, -30, 0, 20)
+    MainText.BackgroundTransparency = 1
+    MainText.TextXAlignment = Enum.TextXAlignment.Left
+
+    local SubLabel = Instance.new("TextLabel", Btn)
+    SubLabel.Text = subtext
+    SubLabel.Font = Enum.Font.GothamMedium
+    SubLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    SubLabel.TextSize = 11
+    SubLabel.Position = UDim2.new(0, 15, 0, 40)
+    SubLabel.Size = UDim2.new(1, -30, 0, 30)
+    SubLabel.BackgroundTransparency = 1
+    SubLabel.TextXAlignment = Enum.TextXAlignment.Left
+    SubLabel.TextWrapped = true
+
+    local active = false
+    Btn.MouseButton1Click:Connect(function()
+        active = not active
+        s.Color = active and Color3.fromRGB(0, 255, 140) or Color3.fromRGB(45, 45, 45)
+        SubLabel.TextColor3 = active and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 150)
+        callback(active)
+    end)
+end
+
+-------------------------------------------------------------------
+-- INTEGRATED LOGIC
+-------------------------------------------------------------------
+local SAFE_OFFSET = Vector3.new(0, 5, 0)
+local lastSafeCF = CFrame.new()
+
+RunService.Heartbeat:Connect(function()
+    local char = lp.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local hum = char:FindFirstChild("Humanoid")
+    if not hrp or not hum or hum.Health <= 0 then return end
+
+    local v = hrp.AssemblyLinearVelocity
+
+    -- Fake Position & Fall Breaker v2 Logic
+    if FakePosEnabled or FallBreakerEnabled then
+        if Vector3.new(v.X, 0, v.Z).Magnitude > 60 then
+            lastSafeCF = hrp.CFrame
+        end
+        if v.Y < -90 or v.Y > 90 then
+            hrp.CFrame = lastSafeCF + SAFE_OFFSET
+            hrp.AssemblyLinearVelocity = Vector3.zero
+        end
+    end
+
+    -- Health Multiplier Velocity Lock
+    if HealthMultEnabled then
+        local oldV = hrp.AssemblyLinearVelocity
+        hrp.AssemblyLinearVelocity = Vector3.zero
+        RunService.RenderStepped:Wait()
+        if hrp.Parent then hrp.AssemblyLinearVelocity = oldV end
+    end
+end)
+
+-- Buttons
+AddButtonWithTip("Fake Position", "Can use walk fling: ❌ | Wins Count: Yes\nDo not jump from high buildings or fly off at a height.", function(v) FakePosEnabled = v end)
+AddButtonWithTip("Fall Damage Breaker v2", "Can use walk fling: ❌ | Wins Count: Yes", function(v) FallBreakerEnabled = v end)
+AddButtonWithTip("Fall Damage Health Multipleyer", "Can use walk fling: ✅ | Wins Count: No", function(v) HealthMultEnabled = v end)
+AddButtonWithTip("2018 Godmode", "Can use walk fling: ❌ | Wins Count: ❌", function(v) 
+    -- MM2 Direct GodMode (GUI version, works immediately)
+local player = game.Players.LocalPlayer
+
+local function godmode()
+    local char = player.Character
+    if char and char:FindFirstChild("Humanoid") then
+        -- Rename original Humanoid
+        char.Humanoid.Name = "1"
+        
+        -- Clone it and replace
+        local clone = char["1"]:Clone()
+        clone.Parent = char
+        clone.Name = "Humanoid"
+        task.wait(0.1)
+        
+        -- Remove old Humanoid
+        char["1"]:Destroy()
+        
+        -- Make camera focus correct
+        workspace.CurrentCamera.CameraSubject = char.Humanoid
+        
+        -- Animate reset
+        if char:FindFirstChild("Animate") then
+            char.Animate.Disabled = true
+            task.wait(0.1)
+            char.Animate.Disabled = false
+        end
+    end
+end
+
+-- Execute directly
+godmode()
+
+end)
+
+-------------------------------------------------------------------
+-- UI CONTROLS
+-------------------------------------------------------------------
+ProceedBtn.MouseButton1Click:Connect(function()
+    HomeScreen.Visible = false
+    ScriptScreen.Visible = true
+end)
+
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+local isMin = false
+MinimizeBtn.MouseButton1Click:Connect(function()
+    isMin = not isMin
+    HomeScreen.Visible = not isMin and not ScriptScreen.Visible
+    ScriptScreen.Visible = not isMin and not HomeScreen.Visible
+    MainFrame:TweenSize(isMin and UDim2.new(0, 380, 0, 60) or UDim2.new(0, 380, 0, 520), "Out", "Quart", 0.3, true)
+end)
