@@ -30,7 +30,7 @@ local FlingPower = 10000
 getgenv().OldPos = nil
 getgenv().FPDH = workspace.FallenPartsDestroyHeight
 
--- FLIGHT SYSTEM VARIABLES
+-- FLIGHT SYSTEM VARIABLES (IY SECRET SAUCE INTEGRATED)
 local Flying = false
 local FlySpeed = 50
 local FlyKeybind = Enum.KeyCode.F
@@ -48,7 +48,9 @@ local SettingKey = false
 -- VISUALS AND UI GLOBALS
 local UI_ToggleKey = Enum.KeyCode.RightControl
 local RainbowMode = false
-local ESP_Color = Color3.fromRGB(255, 255, 255) 
+getgenv().UI_COLOR = Color3.fromRGB(255, 65, 65)
+getgenv().CHAMS_COLOR = Color3.fromRGB(255, 255, 255)
+local ESP_Color = getgenv().CHAMS_COLOR
 local RainbowHue = 0
 local SearchText = ""
 local NameDisplayMode = "Both" 
@@ -64,7 +66,7 @@ OpenBtn.Size = UDim2.new(0, 50, 0, 50)
 OpenBtn.Position = UDim2.new(0, 10, 0.5, -25)
 OpenBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 OpenBtn.Text = "K"
-OpenBtn.TextColor3 = Color3.fromRGB(255, 65, 65)
+OpenBtn.TextColor3 = getgenv().UI_COLOR
 OpenBtn.Font = Enum.Font.GothamBold
 OpenBtn.TextSize = 24
 OpenBtn.Parent = ScreenGui
@@ -121,7 +123,7 @@ Title.Size = UDim2.new(1, -50, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
 Title.Text = "Dembz MULTI-FLING & FLY"
-Title.TextColor3 = Color3.fromRGB(255, 65, 65)
+Title.TextColor3 = getgenv().UI_COLOR
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
 Title.TextXAlignment = Enum.TextXAlignment.Left
@@ -167,7 +169,7 @@ PlayerSelection.Size = UDim2.new(1, -20, 0, 160)
 PlayerSelection.BackgroundTransparency = 1
 PlayerSelection.BorderSizePixel = 0
 PlayerSelection.ScrollBarThickness = 2
-PlayerSelection.ScrollBarImageColor3 = Color3.fromRGB(255, 65, 65)
+PlayerSelection.ScrollBarImageColor3 = getgenv().UI_COLOR
 PlayerSelection.Parent = MainFrame
 
 local ListLayout = Instance.new("UIListLayout", PlayerSelection)
@@ -233,7 +235,8 @@ ManualBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-local ThemeBtn = CreateButton("THEME: RED", UDim2.new(0, 10, 0, 495), UDim2.new(0.5, -15, 0, 35), Color3.fromRGB(30, 30, 30))
+-- COLOR PICKER INTEGRATION (REPLACING OLD THEME BUTTONS)
+local ColorPickerOpenBtn = CreateButton("OPEN COLOR PICKER", UDim2.new(0, 10, 0, 495), UDim2.new(0.5, -15, 0, 35), Color3.fromRGB(30, 30, 30))
 local BindBtn = CreateButton("KEY: E", UDim2.new(0.5, 5, 0, 495), UDim2.new(0.5, -15, 0, 35), Color3.fromRGB(30, 30, 30))
 
 BindBtn.MouseButton1Click:Connect(function()
@@ -244,8 +247,16 @@ end)
 local RainbowBtn = CreateButton("RAINBOW UI: OFF", UDim2.new(0, 10, 0, 535), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
 local NameModeBtn = CreateButton("NAMES: BOTH", UDim2.new(0, 10, 0, 575), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30)) 
 
-local ChamsColorBtn = CreateButton("CHAMS COLOR: WHITE", UDim2.new(0, 10, 0, 615), UDim2.new(1, -20, 0, 35), Color3.fromRGB(255, 255, 255))
-ChamsColorBtn.TextColor3 = Color3.new(0,0,0)
+-- MISC BUTTON WITH RAINBOW COLOR
+local MiscBtn = CreateButton("Coming Soon...", UDim2.new(0, 10, 0, 615), UDim2.new(1, -20, 0, 35), Color3.fromRGB(255, 255, 255))
+MiscBtn.TextColor3 = Color3.new(0,0,0)
+
+task.spawn(function()
+    while task.wait() do
+        local rCol = Color3.fromHSV(tick() % 5 / 5, 1, 1)
+        MiscBtn.BackgroundColor3 = rCol
+    end
+end)
 
 -- FLY SPEED SLIDER
 local SliderFrame = Instance.new("Frame")
@@ -272,7 +283,7 @@ SliderBack.Parent = SliderFrame
 
 local SliderFill = Instance.new("Frame")
 SliderFill.Size = UDim2.new(0.16, 0, 1, 0)
-SliderFill.BackgroundColor3 = Color3.fromRGB(255, 65, 65)
+SliderFill.BackgroundColor3 = getgenv().UI_COLOR
 SliderFill.BorderSizePixel = 0
 SliderFill.Parent = SliderBack
 
@@ -308,60 +319,7 @@ loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/
 end)
 
 GodmodeBtn.MouseButton1Click:Connect(function() 
-local Lp = game.Players.LocalPlayer
-local Cam = workspace.CurrentCamera
-local Char = Lp.Character or Lp.CharacterAdded:Wait()
-
--- 1. STABILIZE CHARACTER (Improved version of your original replacement)
-local function FixHumanoid(Humanoid)
-    if not Humanoid then return end
-    
-    -- Set MaxHealth to a very high number but not "huge" (to avoid detection)
-    Humanoid.MaxHealth = 999999
-    Humanoid.Health = 999999
-    
-    -- Prevent the "Dead" and "Falling" states that trigger damage/reset
-    Humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-    Humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-    Humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-
-    -- Auto-Heal Loop (The "HealthChanged" logic from your original)
-    Humanoid.HealthChanged:Connect(function()
-        if Humanoid.Health < 500000 then
-            Humanoid.Health = Humanoid.MaxHealth
-        end
-    end)
-end
-
--- 2. OPTIMIZE DEBRIS (Ghost Mode)
--- This makes parts not kill you on contact while you stay on the map
-local function Optimize(part)
-    if part:IsA("BasePart") and not part:IsDescendantOf(Char) then
-        part.CanTouch = false
-        -- We keep CanQuery true so you don't fall through the floor
-    end
-end
-
--- Run for existing parts
-for _, obj in pairs(workspace:GetDescendants()) do
-    Optimize(obj)
-end
-
--- Run for parts that spawn during the disaster
-workspace.DescendantAdded:Connect(function(obj)
-    if obj:IsA("BasePart") then
-        Optimize(obj)
-    end
-end)
-
--- 3. APPLY TO CURRENT & FUTURE HUMANOIDS
-FixHumanoid(Char:WaitForChild("Humanoid"))
-
-Lp.CharacterAdded:Connect(function(newChar)
-    Char = newChar
-    FixHumanoid(newChar:WaitForChild("Humanoid"))
-end)
-
+loadstring(game:HttpGet("https://raw.githubusercontent.com/GoldenCheats/natural-disaster-script/refs/heads/main/Dark%20Hospital", true))()
 
 end)
 
@@ -404,51 +362,51 @@ local function IsAlreadyFlung(TargetPlayer)
     return false
 end
 
--- FLY LOGIC ENGINE
+-- FLY LOGIC ENGINE (IY "SECRET SAUCE" INTEGRATED)
+local bv = Instance.new("BodyVelocity")
+local bg = Instance.new("BodyGyro")
+bv.MaxForce = Vector3.new(0, 0, 0)
+bg.MaxTorque = Vector3.new(0, 0, 0)
+bg.P = 9e4
+
 local function ToggleFly()
     Flying = not Flying
     FlyToggleBtn.Text = Flying and "FLY: ON" or "FLY: OFF"
     FlyToggleBtn.BackgroundColor3 = Flying and Color3.fromRGB(40, 130, 80) or Color3.fromRGB(30, 30, 30)
     
-    local c = Player.Character
-    local hrp = c and c:FindFirstChild("HumanoidRootPart")
-    local hum = c and c:FindFirstChildOfClass("Humanoid")
+    local char = Player.Character
+    local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
     
-    if Flying and hrp and hum then
-        hum.PlatformStand = true
-        BodyGyro = Instance.new("BodyGyro", hrp)
-        BodyGyro.P = 9e4
-        BodyGyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-        BodyGyro.cframe = hrp.CFrame
-        
-        BodyVelocity = Instance.new("BodyVelocity", hrp)
-        BodyVelocity.velocity = Vector3.new(0, 0.1, 0)
-        BodyVelocity.maxForce = Vector3.new(9e9, 9e9, 9e9)
-        
-        task.spawn(function()
-            while Flying and hrp and hum do
-                RunService.RenderStepped:Wait()
-                local cam = workspace.CurrentCamera.CFrame
-                local moveDir = Vector3.new(0,0,0)
-                
-                if UIS:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.LookVector end
-                if UIS:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.RightVector end
-                if UIS:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.RightVector end
-                if UIS:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
-                if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then moveDir = moveDir - Vector3.new(0, 1, 0) end
-                
-                BodyVelocity.velocity = moveDir * FlySpeed
-                BodyGyro.cframe = cam
-            end
-            if BodyGyro then BodyGyro:Destroy() end
-            if BodyVelocity then BodyVelocity:Destroy() end
-            hum.PlatformStand = false
-        end)
+    if Flying and rootPart and humanoid then
+        bv.Parent = rootPart
+        bg.Parent = rootPart
+        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        humanoid.PlatformStand = true
     else
+        bv.MaxForce = Vector3.new(0, 0, 0)
+        bg.MaxTorque = Vector3.new(0, 0, 0)
+        if humanoid then humanoid.PlatformStand = false end
         Flying = false
     end
 end
+
+RunService.RenderStepped:Connect(function()
+    if Flying and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+        local rootPart = Player.Character.HumanoidRootPart
+        local camera = workspace.CurrentCamera
+        local direction = Vector3.new(0, 0, 0)
+        
+        if UIS:IsKeyDown(Enum.KeyCode.W) then direction += camera.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then direction -= camera.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then direction -= camera.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then direction += camera.CFrame.RightVector end
+        
+        bg.CFrame = CFrame.new(rootPart.Position, rootPart.Position + camera.CFrame.LookVector)
+        bv.Velocity = direction * FlySpeed
+    end
+end)
 
 FlyToggleBtn.MouseButton1Click:Connect(ToggleFly)
 
@@ -478,56 +436,147 @@ TouchFlingBtn.MouseButton1Click:Connect(function()
     if TouchFlingActive then task.spawn(TouchFlingLoop) end
 end)
 
--- CUSTOM THEME ENGINE
-local Themes = { Red = Color3.fromRGB(255, 65, 65), Blue = Color3.fromRGB(65, 150, 255), Purple = Color3.fromRGB(180, 65, 255), Neon = Color3.fromRGB(0, 255, 150), White = Color3.fromRGB(255, 255, 255), Green = Color3.fromRGB(0, 255, 0), Yellow = Color3.fromRGB(255, 255, 0) }
+-- COLOR PICKER UI SYSTEM (INTEGRATED)
+local PickerFrame = Instance.new("Frame")
+PickerFrame.Size = UDim2.new(0, 260, 0, 310)
+PickerFrame.Position = UDim2.new(0.5, 180, 0.5, -155)
+PickerFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+PickerFrame.BorderSizePixel = 0
+PickerFrame.Visible = false
+PickerFrame.Active = true
+PickerFrame.Parent = ScreenGui
 
-local function UpdateEntireUI(color)
-    Title.TextColor3 = color
-    PlayerSelection.ScrollBarImageColor3 = color
-    OpenBtn.TextColor3 = color
-    MainStroke.Color = color
-    OpenStroke.Color = color
-    SliderFill.BackgroundColor3 = color
+Instance.new("UICorner", PickerFrame).CornerRadius = UDim.new(0, 8)
+local PickerStroke = Instance.new("UIStroke", PickerFrame)
+PickerStroke.Thickness = 2
+PickerStroke.Color = Color3.fromRGB(45, 45, 45)
+PickerStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+local H, S, V = 0, 1, 1
+local ApplyMode = "Both"
+
+local ModeBtnP = Instance.new("TextButton")
+ModeBtnP.Size = UDim2.new(1, -20, 0, 35)
+ModeBtnP.Position = UDim2.new(0, 10, 0, 10)
+ModeBtnP.Text = "APPLY: BOTH"
+ModeBtnP.Font = Enum.Font.GothamBold
+ModeBtnP.TextSize = 14
+ModeBtnP.TextColor3 = Color3.new(1,1,1)
+ModeBtnP.BackgroundColor3 = Color3.fromRGB(35,35,35)
+ModeBtnP.Parent = PickerFrame
+Instance.new("UICorner", ModeBtnP).CornerRadius = UDim.new(0,6)
+
+ModeBtnP.MouseButton1Click:Connect(function()
+    if ApplyMode == "Both" then ApplyMode = "UI" ModeBtnP.Text = "APPLY: UI"
+    elseif ApplyMode == "UI" then ApplyMode = "Chams" ModeBtnP.Text = "APPLY: CHAMS"
+    else ApplyMode = "Both" ModeBtnP.Text = "APPLY: BOTH" end
+end)
+
+local HueBar = Instance.new("Frame")
+HueBar.Size = UDim2.new(1, -20, 0, 20)
+HueBar.Position = UDim2.new(0, 10, 0, 55)
+HueBar.Parent = PickerFrame
+local HueGrad = Instance.new("UIGradient", HueBar)
+HueGrad.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromHSV(0,1,1)), ColorSequenceKeypoint.new(0.167, Color3.fromHSV(0.167,1,1)), ColorSequenceKeypoint.new(0.333, Color3.fromHSV(0.333,1,1)), ColorSequenceKeypoint.new(0.5, Color3.fromHSV(0.5,1,1)), ColorSequenceKeypoint.new(0.667, Color3.fromHSV(0.667,1,1)), ColorSequenceKeypoint.new(0.833, Color3.fromHSV(0.833,1,1)), ColorSequenceKeypoint.new(1, Color3.fromHSV(1,1,1))}
+local HuePointer = Instance.new("Frame")
+HuePointer.Size = UDim2.new(0,2,1,4)
+HuePointer.Position = UDim2.new(0,0,0,-2)
+HuePointer.BackgroundColor3 = Color3.new(1,1,1)
+HuePointer.Parent = HueBar
+
+local SVContainer = Instance.new("TextButton")
+SVContainer.Size = UDim2.new(1, -20, 0, 160)
+SVContainer.Position = UDim2.new(0, 10, 0, 85)
+SVContainer.Text = ""
+SVContainer.Parent = PickerFrame
+local SatFrame = Instance.new("Frame", SVContainer)
+SatFrame.Size = UDim2.new(1,0,1,0)
+local SatGrad = Instance.new("UIGradient", SatFrame)
+SatGrad.Color = ColorSequence.new(Color3.new(1,1,1))
+SatGrad.Transparency = NumberSequence.new(0,1)
+local ValFrame = Instance.new("Frame", SVContainer)
+ValFrame.Size = UDim2.new(1,0,1,0)
+local ValGrad = Instance.new("UIGradient", ValFrame)
+ValGrad.Rotation = 90
+ValGrad.Color = ColorSequence.new(Color3.new(0,0,0))
+ValGrad.Transparency = NumberSequence.new(1,0)
+local Cursor = Instance.new("Frame", SVContainer)
+Cursor.Size = UDim2.new(0,6,0,6)
+Cursor.AnchorPoint = Vector2.new(0.5,0.5)
+Cursor.BackgroundColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", Cursor)
+
+local function ApplyColor(col)
+    if ApplyMode == "UI" or ApplyMode == "Both" then
+        getgenv().UI_COLOR = col
+        Title.TextColor3 = col
+        OpenBtn.TextColor3 = col
+        MainStroke.Color = col
+        OpenStroke.Color = col
+        SliderFill.BackgroundColor3 = col
+        PlayerSelection.ScrollBarImageColor3 = col
+    end
+    if ApplyMode == "Chams" or ApplyMode == "Both" then
+        getgenv().CHAMS_COLOR = col
+        ESP_Color = col
+    end
+    PickerStroke.Color = col
 end
 
+local function UpdatePicker()
+    local pureHue = Color3.fromHSV(H,1,1)
+    local finalCol = Color3.fromHSV(H,S,V)
+    SVContainer.BackgroundColor3 = pureHue
+    HuePointer.Position = UDim2.new(H,-1,0,-2)
+    Cursor.Position = UDim2.new(S,0,1-V,0)
+    ApplyColor(finalCol)
+end
+
+HueBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local conn
+        conn = RunService.RenderStepped:Connect(function()
+            if not UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then conn:Disconnect() return end
+            local mouse = UIS:GetMouseLocation()
+            H = math.clamp((mouse.X - HueBar.AbsolutePosition.X) / HueBar.AbsoluteSize.X, 0, 1)
+            UpdatePicker()
+        end)
+    end
+end)
+
+SVContainer.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local conn
+        conn = RunService.RenderStepped:Connect(function()
+            if not UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then conn:Disconnect() return end
+            local mouse = UIS:GetMouseLocation()
+            local pos = SVContainer.AbsolutePosition
+            local size = SVContainer.AbsoluteSize
+            S = math.clamp((mouse.X - pos.X) / size.X, 0, 1)
+            V = 1 - math.clamp((mouse.Y - (pos.Y + 36)) / size.Y, 0, 1)
+            UpdatePicker()
+        end)
+    end
+end)
+
+ColorPickerOpenBtn.MouseButton1Click:Connect(function()
+    PickerFrame.Visible = not PickerFrame.Visible
+end)
+
+UpdatePicker()
+
+-- RAINBOW LOOP
 RunService.RenderStepped:Connect(function()
     if RainbowMode then
         RainbowHue = RainbowHue + 0.005
         if RainbowHue > 1 then RainbowHue = 0 end
-        local Color = Color3.fromHSV(RainbowHue, 1, 1)
-        UpdateEntireUI(Color)
+        ApplyColor(Color3.fromHSV(RainbowHue, 1, 1))
     end
-end)
-
-local function SetTheme(name)
-    CurrentTheme = name
-    local color = Themes[name] or Themes.Red
-    UpdateEntireUI(color)
-    ThemeBtn.Text = "THEME: " .. name:upper()
-end
-
-ThemeBtn.MouseButton1Click:Connect(function()
-    if CurrentTheme == "Red" then SetTheme("Blue")
-    elseif CurrentTheme == "Blue" then SetTheme("Purple")
-    elseif CurrentTheme == "Purple" then SetTheme("Neon")
-    else SetTheme("Red") end
-end)
-
-ChamsColorBtn.MouseButton1Click:Connect(function()
-    if ESP_Color == Themes.White then ESP_Color = Themes.Red ChamsColorBtn.Text = "CHAMS COLOR: RED"
-    elseif ESP_Color == Themes.Red then ESP_Color = Themes.Blue ChamsColorBtn.Text = "CHAMS COLOR: BLUE"
-    elseif ESP_Color == Themes.Blue then ESP_Color = Themes.Green ChamsColorBtn.Text = "CHAMS COLOR: GREEN"
-    elseif ESP_Color == Themes.Green then ESP_Color = Themes.Yellow ChamsColorBtn.Text = "CHAMS COLOR: YELLOW"
-    elseif ESP_Color == Themes.Yellow then ESP_Color = Themes.Purple ChamsColorBtn.Text = "CHAMS COLOR: PURPLE"
-    else ESP_Color = Themes.White ChamsColorBtn.Text = "CHAMS COLOR: WHITE" end
-    ChamsColorBtn.BackgroundColor3 = ESP_Color
-    ChamsColorBtn.TextColor3 = Color3.new(0,0,0) 
 end)
 
 RainbowBtn.MouseButton1Click:Connect(function()
     RainbowMode = not RainbowMode
     RainbowBtn.Text = RainbowMode and "RAINBOW UI: ON" or "RAINBOW UI: OFF"
-    if not RainbowMode then SetTheme(CurrentTheme) end
 end)
 
 -- LIST MANAGEMENT
@@ -593,16 +642,16 @@ local function SkidFling(TargetPlayer)
         end
         
         workspace.FallenPartsDestroyHeight = 0/0
-        local BV = Instance.new("BodyVelocity", RootPart)
-        BV.Velocity = Vector3.new(0, 0, 0)
-        BV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        local BV_Ex = Instance.new("BodyVelocity", RootPart)
+        BV_Ex.Velocity = Vector3.new(0, 0, 0)
+        BV_Ex.MaxForce = Vector3.new(9e9, 9e9, 9e9)
         Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
         
         if TRootPart then SFBasePart(TRootPart)
         elseif THead then SFBasePart(THead)
         elseif Handle then SFBasePart(Handle) end
         
-        BV:Destroy()
+        BV_Ex:Destroy()
         Humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
         workspace.CurrentCamera.CameraSubject = Humanoid
         
@@ -990,6 +1039,5 @@ end)
 
 -- FINAL STARTUP
 RefreshList()
-SetTheme("Red")
 -- VERIFICATION_OF_CODE_STRUCTURAL_VOLUME_AND_INTEGRITY_INDEX_941
 -- End of Script. Synced for 2026 Environment Variables.
