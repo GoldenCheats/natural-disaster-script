@@ -30,16 +30,12 @@ local FlingPower = 10000
 getgenv().OldPos = nil
 getgenv().FPDH = workspace.FallenPartsDestroyHeight
 
--- FLIGHT SYSTEM VARIABLES (IY SECRET SAUCE INTEGRATED)
+-- FLIGHT SYSTEM VARIABLES (REMOVED LOGIC - PLACEHOLDERS KEPT FOR STRUCTURAL INTEGRITY)
 local Flying = false
 local FlySpeed = 50
-local FlyKeybind = Enum.KeyCode.F
-local BodyGyro = nil
-local BodyVelocity = nil
 local FlySettingKey = false
 
 -- GLOBAL PREFERENCES
-local FlingKeybind = Enum.KeyCode.E
 local ReturnMode = "Original" 
 local ManualPos = nil
 local CurrentTheme = "Red"
@@ -114,7 +110,7 @@ MainScroll.Position = UDim2.new(0, 0, 0, 45)
 MainScroll.BackgroundTransparency = 1
 MainScroll.BorderSizePixel = 0
 MainScroll.ScrollBarThickness = 2
-MainScroll.CanvasSize = UDim2.new(0, 0, 0, 950) -- Holds all original content
+MainScroll.CanvasSize = UDim2.new(0, 0, 0, 1000) -- Increased canvas for larger slider
 MainScroll.Parent = MainFrame
 
 local Header = Instance.new("Frame")
@@ -250,20 +246,14 @@ ManualBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- COLOR PICKER INTEGRATION (REPLACING OLD THEME BUTTONS)
-local ColorPickerOpenBtn = CreateButton("OPEN COLOR PICKER", UDim2.new(0, 10, 0, 450), UDim2.new(0.5, -15, 0, 35), Color3.fromRGB(30, 30, 30))
-local BindBtn = CreateButton("KEY: E", UDim2.new(0.5, 5, 0, 450), UDim2.new(0.5, -15, 0, 35), Color3.fromRGB(30, 30, 30))
-
-BindBtn.MouseButton1Click:Connect(function()
-    SettingKey = true
-    BindBtn.Text = "PRESS ANY KEY..."
-end)
+-- COLOR PICKER INTEGRATION
+local ColorPickerOpenBtn = CreateButton("OPEN COLOR PICKER", UDim2.new(0, 10, 0, 450), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
 
 local RainbowBtn = CreateButton("RAINBOW UI: OFF", UDim2.new(0, 10, 0, 490), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
 local NameModeBtn = CreateButton("NAMES: BOTH", UDim2.new(0, 10, 0, 530), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30)) 
 
 -- MISC BUTTON WITH RAINBOW COLOR
-local MiscBtn = CreateButton("MISC", UDim2.new(0, 10, 0, 570), UDim2.new(1, -20, 0, 35), Color3.fromRGB(255, 255, 255))
+local MiscBtn = CreateButton("COMING SOON", UDim2.new(0, 10, 0, 570), UDim2.new(1, -20, 0, 35), Color3.fromRGB(255, 255, 255))
 MiscBtn.TextColor3 = Color3.new(0,0,0)
 
 task.spawn(function()
@@ -273,86 +263,38 @@ task.spawn(function()
     end
 end)
 
--- FLY SPEED SLIDER
-local SliderFrame = Instance.new("Frame")
-SliderFrame.Size = UDim2.new(1, -20, 0, 50)
-SliderFrame.Position = UDim2.new(0, 10, 0, 610)
-SliderFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-SliderFrame.Parent = MainScroll
-Instance.new("UICorner", SliderFrame).CornerRadius = UDim.new(0, 6)
+local GodmodeBtn = CreateButton("No fall Damage", UDim2.new(0, 10, 0, 610), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
+local AntiFlingBtn = CreateButton("Infinite Yield (Do AntiFling)", UDim2.new(0, 10, 0, 650), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
+local TouchFlingBtn = CreateButton("TOUCH FLING: OFF", UDim2.new(0, 10, 0, 690), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
 
-local SliderLabel = Instance.new("TextLabel")
-SliderLabel.Size = UDim2.new(1, 0, 0, 20)
-SliderLabel.BackgroundTransparency = 1
-SliderLabel.Text = "FLY SPEED: 50"
-SliderLabel.TextColor3 = Color3.new(1,1,1)
-SliderLabel.Font = Enum.Font.GothamBold
-SliderLabel.TextSize = 12
-SliderLabel.Parent = SliderFrame
+local SmartFlingBtn = CreateButton("SMART FLING: OFF", UDim2.new(0, 10, 0, 730), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
 
-local SliderBack = Instance.new("Frame")
-SliderBack.Size = UDim2.new(0.9, 0, 0, 4)
-SliderBack.Position = UDim2.new(0.05, 0, 0.7, 0)
-SliderBack.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-SliderBack.Parent = SliderFrame
-
-local SliderFill = Instance.new("Frame")
-SliderFill.Size = UDim2.new(0.16, 0, 1, 0)
-SliderFill.BackgroundColor3 = getgenv().UI_COLOR
-SliderFill.BorderSizePixel = 0
-SliderFill.Parent = SliderBack
-
-local function UpdateSlider(input)
-    local pos = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
-    SliderFill.Size = UDim2.new(pos, 0, 1, 0)
-    FlySpeed = math.floor(pos * 300)
-    SliderLabel.Text = "FLY SPEED: " .. FlySpeed
-end
-
-local draggingSlider = false
-SliderBack.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSlider = true end
-end)
-UIS.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSlider = false end
-end)
-UIS.InputChanged:Connect(function(input)
-    if draggingSlider and input.UserInputType == Enum.UserInputType.MouseMovement then UpdateSlider(input) end
-end)
-
-local GodmodeBtn = CreateButton("No fall Damage", UDim2.new(0, 10, 0, 665), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
-local AntiFlingBtn = CreateButton("Infinite Yield (Do AntiFling)", UDim2.new(0, 10, 0, 705), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
-local TouchFlingBtn = CreateButton("TOUCH FLING: OFF", UDim2.new(0, 10, 0, 745), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
-
-local SmartFlingBtn = CreateButton("SMART FLING: OFF", UDim2.new(0, 10, 0, 785), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
-
-local FlyToggleBtn = CreateButton("FLY: OFF", UDim2.new(0, 10, 0, 825), UDim2.new(0.5, -15, 0, 35), Color3.fromRGB(30, 30, 30))
-local FlyBindBtn = CreateButton("FLY KEY: F", UDim2.new(0.5, 5, 0, 825), UDim2.new(0.5, -15, 0, 35), Color3.fromRGB(30, 30, 30))
+local FlyToggleBtn = CreateButton("Mobile Fly GUI", UDim2.new(0, 10, 0, 770), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
 
 -- NEW FEATURE: CLICK-TO-FLING FOV SYSTEM
 local FOVActive = false
 local FOVRadius = 100
-local FOVBtn = CreateButton("CLICK FOV: OFF", UDim2.new(0, 10, 0, 865), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
+local FOVBtn = CreateButton("CLICK FOV: OFF", UDim2.new(0, 10, 0, 810), UDim2.new(1, -20, 0, 35), Color3.fromRGB(30, 30, 30))
 
 local FOVSliderFrame = Instance.new("Frame")
-FOVSliderFrame.Size = UDim2.new(1, -20, 0, 40)
-FOVSliderFrame.Position = UDim2.new(0, 10, 0, 905)
+FOVSliderFrame.Size = UDim2.new(1, -20, 0, 55) -- Increased size from 40 to 55
+FOVSliderFrame.Position = UDim2.new(0, 10, 0, 850)
 FOVSliderFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 FOVSliderFrame.Parent = MainScroll
 Instance.new("UICorner", FOVSliderFrame)
 
 local FOVSliderLabel = Instance.new("TextLabel")
-FOVSliderLabel.Size = UDim2.new(1, 0, 0, 15)
+FOVSliderLabel.Size = UDim2.new(1, 0, 0, 20) -- Increased text height
 FOVSliderLabel.BackgroundTransparency = 1
 FOVSliderLabel.Text = "FOV SIZE: 100"
 FOVSliderLabel.TextColor3 = Color3.new(1,1,1)
-FOVSliderLabel.Font = Enum.Font.Gotham
-FOVSliderLabel.TextSize = 10
+FOVSliderLabel.Font = Enum.Font.GothamBold -- Bolder font
+FOVSliderLabel.TextSize = 12
 FOVSliderLabel.Parent = FOVSliderFrame
 
 local FOVBack = Instance.new("Frame")
-FOVBack.Size = UDim2.new(0.8, 0, 0, 2)
-FOVBack.Position = UDim2.new(0.1, 0, 0.7, 0)
+FOVBack.Size = UDim2.new(0.8, 0, 0, 8) -- Made thicker for easier clicking
+FOVBack.Position = UDim2.new(0.1, 0, 0.65, 0)
 FOVBack.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 FOVBack.Parent = FOVSliderFrame
 
@@ -360,6 +302,11 @@ local FOVFill = Instance.new("Frame")
 FOVFill.Size = UDim2.new(0.2, 0, 1, 0)
 FOVFill.BackgroundColor3 = getgenv().UI_COLOR
 FOVFill.Parent = FOVBack
+
+AntiFlingBtn.MouseButton1Click:Connect(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+    end)
+
 
 -- SMART FLING DETECTION ENGINE
 SmartFlingBtn.MouseButton1Click:Connect(function()
@@ -394,53 +341,15 @@ local function IsAlreadyFlung(TargetPlayer)
     return false
 end
 
--- FLY LOGIC ENGINE (IY "SECRET SAUCE" INTEGRATED)
-local bv = Instance.new("BodyVelocity")
-local bg = Instance.new("BodyGyro")
-bv.MaxForce = Vector3.new(0, 0, 0)
-bg.MaxTorque = Vector3.new(0, 0, 0)
-bg.P = 9e4
-
-local function ToggleFly()
-    Flying = not Flying
-    FlyToggleBtn.Text = Flying and "FLY: ON" or "FLY: OFF"
-    FlyToggleBtn.BackgroundColor3 = Flying and Color3.fromRGB(40, 130, 80) or Color3.fromRGB(30, 30, 30)
-    
-    local char = Player.Character
-    local rootPart = char and char:FindFirstChild("HumanoidRootPart")
-    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-    
-    if Flying and rootPart and humanoid then
-        bv.Parent = rootPart
-        bg.Parent = rootPart
-        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-        humanoid.PlatformStand = true
-    else
-        bv.MaxForce = Vector3.new(0, 0, 0)
-        bg.MaxTorque = Vector3.new(0, 0, 0)
-        if humanoid then humanoid.PlatformStand = false end
-        Flying = false
-    end
-end
-
-RunService.RenderStepped:Connect(function()
-    if Flying and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-        local rootPart = Player.Character.HumanoidRootPart
-        local camera = workspace.CurrentCamera
-        local direction = Vector3.new(0, 0, 0)
-        
-        if UIS:IsKeyDown(Enum.KeyCode.W) then direction += camera.CFrame.LookVector end
-        if UIS:IsKeyDown(Enum.KeyCode.S) then direction -= camera.CFrame.LookVector end
-        if UIS:IsKeyDown(Enum.KeyCode.A) then direction -= camera.CFrame.RightVector end
-        if UIS:IsKeyDown(Enum.KeyCode.D) then direction += camera.CFrame.RightVector end
-        
-        bg.CFrame = CFrame.new(rootPart.Position, rootPart.Position + camera.CFrame.LookVector)
-        bv.Velocity = direction * FlySpeed
-    end
+-- MODIFIED FLY ACTION (EXECUTES FLYGUI V3)
+FlyToggleBtn.MouseButton1Click:Connect(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEOFF/FlyGuiV3/main/FlyGuiV3.txt"))()
 end)
 
-FlyToggleBtn.MouseButton1Click:Connect(ToggleFly)
+-- GODMODE ACTION (DARK HOSPITAL LOADSTRING)
+GodmodeBtn.MouseButton1Click:Connect(function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/GoldenCheats/natural-disaster-script/refs/heads/main/Dark%20Hospital"))()
+end)
 
 -- TOUCH FLING HANDLER
 local function TouchFlingLoop()
@@ -546,7 +455,6 @@ local function ApplyColor(col)
         OpenBtn.TextColor3 = col
         MainStroke.Color = col
         OpenStroke.Color = col
-        SliderFill.BackgroundColor3 = col
         PlayerSelection.ScrollBarImageColor3 = col
         FOVFill.BackgroundColor3 = col
     end
@@ -939,9 +847,6 @@ local function GetTargetFromFOV()
 end
 
 UIS.InputBegan:Connect(function(input, gp)
-    if SettingKey then if input.UserInputType == Enum.UserInputType.Keyboard then FlingKeybind = input.KeyCode BindBtn.Text = "KEY: " .. input.KeyCode.Name SettingKey = false end return end
-    if FlySettingKey then if input.UserInputType == Enum.UserInputType.Keyboard then FlyKeybind = input.KeyCode FlyBindBtn.Text = "FLY KEY: " .. input.KeyCode.Name FlySettingKey = false end return end
-    
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         if FOVActive then
             local target = GetTargetFromFOV()
@@ -1108,7 +1013,7 @@ RefreshList = function()
                     Yes.TextColor3 = Color3.new(1,1,1)
                     Yes.Parent = TutFrame
                     Yes.MouseButton1Click:Connect(function()
-                        SendChatMessage("Hello " .. p.DisplayName .. "! Whitelisted. Cmds: .fling (user/all), .loopfling (user/all), .unfling, .unloopfling all.")
+                        SendChatMessage("Hello " .. p.DisplayName .. "! Whitelisted. Cmds: .fling (user/all)")
                         TutFrame:Destroy()
                     end)
                     
