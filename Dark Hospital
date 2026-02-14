@@ -19,10 +19,9 @@ local FakePosEnabled = false
 local FallBreakerEnabled = false
 local HealthMultEnabled = false
 local God2018Active = false
-local SAFE_OFFSET = Vector3.new(0, 5, 0)
-local lastSafeCF = CFrame.new()
+local SAFE_OFFSET = Vector3.new(0, 2, 0) 
 
--- [[ DRAG LOGIC - MULTI-SIDE GRAB ]]
+-- [[ DRAG LOGIC ]]
 local function makeDraggable(frame)
     local dragging, dragInput, dragStart, startPos
     local function update(input)
@@ -70,7 +69,67 @@ local function apply2018GodMode()
     end
 end
 
-lp.CharacterAdded:Connect(function()
+-- [[ INTEGRATED LOGIC HOOKS ]]
+local lastSafeCF = CFrame.new()
+
+local function onChar(char)
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local hum = char:WaitForChild("Humanoid")
+    lastSafeCF = hrp.CFrame
+
+    -- Main Loop for Fake Position & Health Multiplier
+    RunService.Heartbeat:Connect(function()
+        if not hrp or not hrp.Parent or hum.Health <= 0 then return end
+        
+        local v = hrp.AssemblyLinearVelocity
+
+        -- 1. FAKE POSITION LOGIC (REPLACED)
+        if FakePosEnabled then
+            -- Anti-Fling (Horizontal)
+            if Vector3.new(v.X, 0, v.Z).Magnitude > 60 then
+                lastSafeCF = hrp.CFrame
+            end
+
+            -- Anti-Fall Damage
+            if v.Y < -80 then
+                local rayParam = RaycastParams.new()
+                rayParam.FilterDescendantsInstances = {char}
+                rayParam.FilterType = Enum.RaycastFilterType.Exclude
+                local groundCheck = game.Workspace:Raycast(hrp.Position, Vector3.new(0, -15, 0), rayParam)
+
+                if groundCheck then
+                    hrp.AssemblyLinearVelocity = Vector3.new(v.X, 0, v.Z) 
+                end
+            end
+
+            -- Glitch/Void Protection
+            if v.Magnitude > 300 then
+                hrp.CFrame = lastSafeCF + SAFE_OFFSET
+                hrp.AssemblyLinearVelocity = Vector3.zero
+            end
+        end
+
+        -- 2. HEALTH MULTIPLIER (Original Logic)
+        if HealthMultEnabled then
+            local currentV = hrp.AssemblyLinearVelocity
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            RunService.RenderStepped:Wait()
+            if hrp.Parent then hrp.AssemblyLinearVelocity = currentV end
+        end
+
+        -- 3. FALL DAMAGE BREAKER V2 (REPLACED)
+        if FallBreakerEnabled then
+            local currentV = hrp.AssemblyLinearVelocity
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            RunService.RenderStepped:Wait()
+            if hrp.Parent then hrp.AssemblyLinearVelocity = currentV end
+        end
+    end)
+end
+
+if lp.Character then onChar(lp.Character) end
+lp.CharacterAdded:Connect(function(char)
+    onChar(char)
     if God2018Active then task.wait(0.5) apply2018GodMode() end
 end)
 
@@ -83,7 +142,7 @@ MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
 MainFrame.Position = UDim2.new(0.3, 0, 0.3, 0)
-MainFrame.Size = UDim2.new(0, 380, 0, 520) -- Default PC
+MainFrame.Size = UDim2.new(0, 380, 0, 520)
 MainFrame.Active = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
 local MainStroke = Instance.new("UIStroke", MainFrame)
@@ -121,9 +180,7 @@ MinimizeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 MinimizeBtn.Text = ""
 Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(1, 0)
 
--------------------------------------------------------------------
--- DEVICE SELECTION SCREEN
--------------------------------------------------------------------
+-- DEVICE SELECTION
 DeviceScreen.Name = "DeviceScreen"
 DeviceScreen.Parent = MainFrame
 DeviceScreen.BackgroundTransparency = 1
@@ -155,9 +212,7 @@ end
 CreateDeviceBtn("PC VERSION", UDim2.new(0, 380, 0, 520))
 CreateDeviceBtn("MOBILE VERSION", UDim2.new(0, 280, 0, 350))
 
--------------------------------------------------------------------
--- HOME SCREEN (CAUTION & TIPS)
--------------------------------------------------------------------
+-- HOME SCREEN
 HomeScreen.Name = "HomeScreen"
 HomeScreen.Parent = MainFrame
 HomeScreen.BackgroundTransparency = 1
@@ -206,9 +261,7 @@ ProceedBtn.Font = Enum.Font.GothamBold
 ProceedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 Instance.new("UICorner", ProceedBtn).CornerRadius = UDim.new(0, 8)
 
--------------------------------------------------------------------
 -- SCRIPT SCREEN
--------------------------------------------------------------------
 ScriptScreen.Name = "ScriptScreen"
 ScriptScreen.Parent = MainFrame
 ScriptScreen.BackgroundTransparency = 1
@@ -259,32 +312,14 @@ local function AddButtonWithTip(name, subtext, callback)
     end)
 end
 
--- Logic Hookups
-RunService.Heartbeat:Connect(function()
-    local char = lp.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    local velocity = hrp.AssemblyLinearVelocity
-
-    if FakePosEnabled or FallBreakerEnabled then
-        if Vector3.new(velocity.X, 0, velocity.Z).Magnitude > 60 then lastSafeCF = hrp.CFrame end
-        if velocity.Y < -90 or velocity.Y > 90 then
-            hrp.CFrame = lastSafeCF + SAFE_OFFSET
-            hrp.AssemblyLinearVelocity = Vector3.zero
-        end
+AddButtonWithTip("Fake Position", "❌ Fling | ✅ Wins\nIntegrated Anti-Fall & Anti-Fling.", function(v) FakePosEnabled = v end)
+AddButtonWithTip("Fall Damage Breaker v2", "❌ Fling | ✅ Wins\nUses Velocity Nullification.", function(v) 
+    if game.PlaceId ~= 189707 then 
+        warn("Only for Natural Disaster Survival") 
     end
-
-    if HealthMultEnabled then
-        local currentV = hrp.AssemblyLinearVelocity
-        hrp.AssemblyLinearVelocity = Vector3.zero
-        RunService.RenderStepped:Wait()
-        if hrp.Parent then hrp.AssemblyLinearVelocity = currentV end
-    end
+    setclipboard("https://discord.gg/ypjMw5xmuj")
+    FallBreakerEnabled = v 
 end)
-
-AddButtonWithTip("Fake Position", "❌ Fling | ✅ Wins\nNo high jumping.", function(v) FakePosEnabled = v end)
-AddButtonWithTip("Fall Damage Breaker v2", "❌ Fling | ✅ Wins", function(v) FallBreakerEnabled = v end)
 AddButtonWithTip("Health Multipleyer", "✅ Fling | ❌ Wins", function(v) HealthMultEnabled = v end)
 AddButtonWithTip("2018 Godmode", "❌ Fling | ❌ Wins", function(v) God2018Active = v if v then apply2018GodMode() end end)
 
